@@ -7,6 +7,12 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+<!-- Firebase loaded as regular scripts (not modules) for better mobile compat -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -35,16 +41,15 @@ body { font-family: 'DM Sans', sans-serif; background: var(--paper); color: var(
 
 #login-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 2rem; text-align: center; }
 #login-screen h1 { font-family: 'DM Serif Display', serif; font-size: 52px; font-weight: 400; letter-spacing: -1px; margin-bottom: 8px; }
-#login-screen .sub { font-size: 16px; color: var(--ink2); margin-bottom: 2.5rem; }
+.sub { font-size: 16px; color: var(--ink2); margin-bottom: 2.5rem; }
 .google-btn { display: inline-flex; align-items: center; gap: 10px; padding: 13px 24px; border-radius: var(--r); border: 1px solid var(--line2); background: var(--paper2); color: var(--ink); font-size: 15px; font-family: 'DM Sans', sans-serif; font-weight: 400; cursor: pointer; transition: background 0.15s; }
 .google-btn:hover { background: var(--paper3); }
 .google-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.login-note { font-size: 12px; color: var(--ink3); margin-top: 1rem; }
-.login-status { font-size: 13px; color: var(--ink2); margin-top: 1.5rem; min-height: 20px; }
+.login-status { font-size: 13px; color: var(--ink2); margin-top: 1.25rem; min-height: 20px; }
+.login-err { font-size: 12px; color: var(--red); margin-top: 0.75rem; max-width: 280px; line-height: 1.5; }
 
 #main-app { display: none; }
 #app { max-width: 520px; margin: 0 auto; padding: 2rem 1.5rem 7rem; }
-
 .header { margin-bottom: 2rem; }
 .header-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 3px; }
 .wordmark { font-family: 'DM Serif Display', serif; font-size: 38px; font-weight: 400; letter-spacing: -1px; line-height: 1; }
@@ -57,16 +62,13 @@ body { font-family: 'DM Sans', sans-serif; background: var(--paper); color: var(
 .sync-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--line2); }
 .sync-dot.live { background: var(--green); }
 .sync-text { font-size: 12px; color: var(--ink3); }
-
 .action-row { display: flex; gap: 8px; margin-bottom: 1.5rem; flex-wrap: wrap; }
 .act-btn { font-size: 13px; font-family: 'DM Sans', sans-serif; font-weight: 400; padding: 8px 18px; border-radius: 999px; border: 1px solid var(--line2); background: transparent; color: var(--ink2); cursor: pointer; transition: all 0.15s; }
 .act-btn:hover { background: var(--paper2); color: var(--ink); }
-
 .month-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.75rem; padding-bottom: 1.25rem; border-bottom: 1px solid var(--line); }
 .month-nav-btn { background: none; border: none; font-size: 18px; cursor: pointer; color: var(--ink2); padding: 6px 10px; border-radius: var(--r); transition: background 0.1s; line-height: 1; }
 .month-nav-btn:hover { background: var(--paper2); }
 .month-name { font-size: 17px; font-weight: 400; }
-
 .budget-wrap { margin-bottom: 1.75rem; }
 .budget-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
 .budget-label { font-size: 12px; color: var(--ink3); text-transform: uppercase; letter-spacing: 0.07em; }
@@ -79,14 +81,12 @@ body { font-family: 'DM Sans', sans-serif; background: var(--paper); color: var(
 .budget-msg { margin-top: 10px; font-size: 13px; padding: 9px 13px; border-radius: var(--r); }
 .budget-msg.warn { background: var(--amber-bg); color: var(--amber); }
 .budget-msg.over { background: var(--red-bg); color: var(--red); }
-
 .stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 1.75rem; }
 .stat { background: var(--paper2); border-radius: var(--r2); padding: 16px 14px; }
 .stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink3); margin-bottom: 8px; }
 .stat-val { font-size: 22px; font-weight: 400; font-family: 'DM Serif Display', serif; letter-spacing: -0.5px; }
 .stat-val.g { color: var(--green); }
 .stat-val.r { color: var(--red); }
-
 .chart-card { background: var(--paper2); border-radius: var(--r2); padding: 18px 16px; margin-bottom: 1.25rem; }
 .chart-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--ink3); margin-bottom: 16px; }
 .pie-wrap { display: flex; align-items: center; gap: 20px; }
@@ -97,11 +97,9 @@ body { font-family: 'DM Sans', sans-serif; background: var(--paper); color: var(
 .lname { flex: 1; color: var(--ink2); font-size: 13px; }
 .lval { font-weight: 500; font-size: 13px; }
 .trend-canvas { width: 100% !important; height: 150px !important; }
-
 .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 1.25rem; }
 .chip { font-size: 13px; padding: 6px 14px; border-radius: 999px; border: 1px solid var(--line2); background: transparent; color: var(--ink2); cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.12s; }
 .chip.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
-
 .entries { display: flex; flex-direction: column; }
 .entry { display: flex; align-items: center; gap: 14px; padding: 15px 0; border-bottom: 1px solid var(--line); }
 .entry:first-child { border-top: 1px solid var(--line); }
@@ -118,10 +116,8 @@ body { font-family: 'DM Sans', sans-serif; background: var(--paper); color: var(
 .del-btn:hover { color: var(--red); }
 .empty { padding: 4rem 0; text-align: center; font-size: 14px; color: var(--ink3); }
 .loading { padding: 4rem 0; text-align: center; font-size: 14px; color: var(--ink3); }
-
 .fab { position: fixed; bottom: 28px; right: 28px; width: 56px; height: 56px; border-radius: 50%; background: var(--ink); color: var(--paper); border: none; font-size: 28px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.15s; box-shadow: 0 2px 20px rgba(0,0,0,0.18); }
 .fab:hover { transform: scale(1.07); }
-
 .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.32); backdrop-filter: blur(3px); align-items: flex-end; justify-content: center; z-index: 100; padding: 1rem; }
 @media (min-width: 480px) { .overlay { align-items: center; } }
 .overlay.open { display: flex; }
@@ -166,8 +162,8 @@ body { font-family: 'DM Sans', sans-serif; background: var(--paper); color: var(
     </svg>
     Continue with Google
   </button>
-  <p class="login-note">on mobile, you'll be redirected to sign in</p>
   <p class="login-status" id="login-status"></p>
+  <p class="login-err" id="login-err"></p>
 </div>
 
 <div id="main-app">
@@ -177,7 +173,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--paper); color: var(
         <div class="wordmark">Spent</div>
         <div class="user-area">
           <div id="user-avatar"></div>
-          <button class="signout-btn" onclick="signOut()">sign out</button>
+          <button class="signout-btn" onclick="doSignOut()">sign out</button>
         </div>
       </div>
       <div class="sync-row">
@@ -185,19 +181,16 @@ body { font-family: 'DM Sans', sans-serif; background: var(--paper); color: var(
         <span class="sync-text" id="sync-text">connecting</span>
       </div>
     </div>
-
     <div class="action-row">
       <button class="act-btn" onclick="openBudgetModal()">budget</button>
       <button class="act-btn" onclick="openRecurringModal()">recurring</button>
       <button class="act-btn" onclick="exportXLSX()">export excel</button>
     </div>
-
     <div class="month-nav">
       <button class="month-nav-btn" onclick="changeMonth(-1)">&#8592;</button>
       <span class="month-name" id="month-label"></span>
       <button class="month-nav-btn" onclick="changeMonth(1)" id="next-btn">&#8594;</button>
     </div>
-
     <div id="budget-wrap" style="display:none;" class="budget-wrap">
       <div class="budget-top">
         <span class="budget-label">budget</span>
@@ -209,18 +202,15 @@ body { font-family: 'DM Sans', sans-serif; background: var(--paper); color: var(
       <div class="bar-track"><div class="bar-fill" id="bar-fill"></div></div>
       <div id="budget-msg" style="display:none;" class="budget-msg"></div>
     </div>
-
     <div class="stats">
       <div class="stat"><div class="stat-label">total</div><div class="stat-val" id="s-total">₹0</div></div>
       <div class="stat"><div class="stat-label">needed</div><div class="stat-val g" id="s-nec">₹0</div></div>
       <div class="stat"><div class="stat-label">impulse</div><div class="stat-val r" id="s-unnec">₹0</div></div>
     </div>
-
     <div class="chart-card" id="trend-card" style="display:none;">
       <div class="chart-label">6 months</div>
       <canvas id="trend-chart" class="trend-canvas"></canvas>
     </div>
-
     <div class="chart-card" id="pie-card" style="display:none;">
       <div class="chart-label">by category</div>
       <div class="pie-wrap">
@@ -228,11 +218,9 @@ body { font-family: 'DM Sans', sans-serif; background: var(--paper); color: var(
         <div class="legend" id="legend"></div>
       </div>
     </div>
-
     <div class="chips" id="chips"></div>
     <div class="entries" id="entries"><div class="loading">loading...</div></div>
   </div>
-
   <button class="fab" onclick="openModal()">+</button>
 
   <div class="overlay" id="add-overlay">
@@ -241,10 +229,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--paper); color: var(
       <div class="field"><label>Amount (₹)</label><input type="number" id="f-amount" placeholder="150" min="1" inputmode="numeric"></div>
       <div class="field"><label>Note</label><input type="text" id="f-note" placeholder="lunch, cab, rent..."></div>
       <div class="field"><label>Category</label>
-        <select id="f-cat">
-          <option>Food</option><option>Travel</option><option>Stationary</option>
-          <option>Shopping</option><option>Entertainment</option><option>Health</option><option>Other</option>
-        </select>
+        <select id="f-cat"><option>Food</option><option>Travel</option><option>Stationary</option><option>Shopping</option><option>Entertainment</option><option>Health</option><option>Other</option></select>
       </div>
       <div class="field"><label>Necessary?</label>
         <div class="nec-row">
@@ -284,16 +269,9 @@ body { font-family: 'DM Sans', sans-serif; background: var(--paper); color: var(
   </div>
 </div>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import {
-  getAuth, GoogleAuthProvider,
-  signInWithPopup, signInWithRedirect, getRedirectResult,
-  onAuthStateChanged, signOut as fbSignOut
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy, serverTimestamp, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-const cfg = {
+<script>
+// Firebase compat SDK — works more reliably on mobile browsers
+const firebaseConfig = {
   apiKey: "AIzaSyByuJEfAmu_YC6gR-In24IorL-NtY_ZuXM",
   authDomain: "expense-tracker-abca3.firebaseapp.com",
   projectId: "expense-tracker-abca3",
@@ -301,31 +279,11 @@ const cfg = {
   messagingSenderId: "942008310540",
   appId: "1:942008310540:web:63cdc94af5fd125c810729"
 };
-const fireApp = initializeApp(cfg);
-const auth = getAuth(fireApp);
-const db = getFirestore(fireApp);
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
 
 Chart.defaults.devicePixelRatio = window.devicePixelRatio || 2;
-const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
-const setStatus = msg => { document.getElementById('login-status').textContent = msg; };
-
-// On page load, always check for redirect result first
-if (isMobile) {
-  setStatus('Checking sign-in...');
-  getRedirectResult(auth).then(result => {
-    if (result && result.user) {
-      // Successfully signed in via redirect — onAuthStateChanged will handle the rest
-      setStatus('Signed in! Loading...');
-    } else {
-      setStatus('');
-    }
-  }).catch(err => {
-    console.error('Redirect result error:', err);
-    setStatus('Sign-in failed. Please try again.');
-    document.getElementById('signin-btn').disabled = false;
-  });
-}
 
 const CATS = {
   Food:'#2d6a4f', Travel:'#1a3d6e', Stationary:'#8a5c1a',
@@ -333,7 +291,7 @@ const CATS = {
 };
 
 let entries=[], recurring=[], necVal='yes', activeFilter='All';
-let unsubE=null, unsubR=null, user=null, budget=0;
+let unsubE=null, unsubR=null, currentUser=null, budget=0;
 let pieChart=null, trendChart=null;
 const now=new Date(); let viewY=now.getFullYear(), viewM=now.getMonth();
 
@@ -343,6 +301,9 @@ const curKey = () => mKey(viewY,viewM);
 const mLabel = (y,m) => new Date(y,m,1).toLocaleString('default',{month:'long',year:'numeric'});
 const mShort = (y,m) => new Date(y,m,1).toLocaleString('default',{month:'short'});
 
+function setStatus(msg) { document.getElementById('login-status').textContent = msg; }
+function setErr(msg) { document.getElementById('login-err').textContent = msg; }
+
 function monthEntries() {
   const key=curKey(), reg=entries.filter(e=>e.monthKey===key);
   const recs=recurring.filter(t=>!reg.some(e=>e.recurringId===t.id)).map(t=>({
@@ -351,12 +312,84 @@ function monthEntries() {
   return [...recs,...reg];
 }
 
-window.exportXLSX = () => {
-  if (!entries.length) { alert('No data to export yet.'); return; }
+window.signInWithGoogle = async function() {
+  const btn = document.getElementById('signin-btn');
+  btn.disabled = true;
+  setStatus('Signing in...');
+  setErr('');
+  const provider = new firebase.auth.GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: 'select_account' });
+  try {
+    await auth.signInWithPopup(provider);
+    // onAuthStateChanged handles the rest
+  } catch(e) {
+    console.error('Sign in error:', e.code, e.message);
+    btn.disabled = false;
+    setStatus('');
+    if (e.code === 'auth/popup-blocked') {
+      setErr('Popup was blocked. Please allow popups for this site in your browser settings, then try again.');
+    } else if (e.code === 'auth/popup-closed-by-user') {
+      setErr('Sign-in was cancelled. Tap the button to try again.');
+    } else {
+      setErr('Sign-in failed: ' + e.message);
+    }
+  }
+};
+
+window.doSignOut = async function() {
+  await auth.signOut();
+};
+
+auth.onAuthStateChanged(async function(u) {
+  if (u) {
+    currentUser = u;
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('main-app').style.display = 'block';
+    const av = document.getElementById('user-avatar');
+    av.innerHTML = u.photoURL
+      ? `<img class="avatar" src="${u.photoURL}" referrerpolicy="no-referrer">`
+      : `<div class="avatar-placeholder">${(u.displayName||u.email||'?')[0].toUpperCase()}</div>`;
+    await loadBudget(u.uid);
+    startListening(u.uid);
+  } else {
+    currentUser = null;
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('main-app').style.display = 'none';
+    document.getElementById('signin-btn').disabled = false;
+    setStatus(''); setErr('');
+    if(unsubE){ unsubE(); unsubE=null; }
+    if(unsubR){ unsubR(); unsubR=null; }
+    entries=[]; recurring=[];
+  }
+});
+
+async function loadBudget(uid) {
+  try {
+    const snap = await db.collection('users').doc(uid).collection('settings').doc('budget').get();
+    budget = snap.exists ? (snap.data().amount || 0) : 0;
+  } catch(e) { budget = 0; }
+}
+
+function startListening(uid) {
+  if(unsubE) unsubE(); if(unsubR) unsubR();
+  unsubE = db.collection('users').doc(uid).collection('expenses')
+    .orderBy('createdAt','desc')
+    .onSnapshot(snap => {
+      entries = snap.docs.map(d => ({id:d.id,...d.data()}));
+      render();
+      document.getElementById('sync-dot').classList.add('live');
+      document.getElementById('sync-text').textContent = 'synced';
+    }, () => { document.getElementById('sync-text').textContent = 'offline'; });
+  unsubR = db.collection('users').doc(uid).collection('recurring')
+    .onSnapshot(snap => { recurring = snap.docs.map(d => ({id:d.id,...d.data()})); render(); });
+}
+
+window.exportXLSX = function() {
+  if(!entries.length){alert('No data to export yet.');return;}
   const wb = XLSX.utils.book_new();
-  const headerRow = ['Date', 'Note', 'Category', 'Amount (₹)', 'Necessary', 'Recurring'];
+  const headerRow = ['Date','Note','Category','Amount (₹)','Necessary','Recurring'];
   const byMonth = {};
-  entries.forEach(e => { const k=e.monthKey||'Unknown'; if(!byMonth[k])byMonth[k]=[]; byMonth[k].push(e); });
+  entries.forEach(e=>{ const k=e.monthKey||'Unknown'; if(!byMonth[k])byMonth[k]=[]; byMonth[k].push(e); });
   const sortedMonths = Object.keys(byMonth).sort();
   const summaryRows = [
     ['Spent — Expense Summary'],
@@ -374,12 +407,11 @@ window.exportXLSX = () => {
   });
   const grandTotal=entries.reduce((s,e)=>s+e.amount,0);
   const grandNec=entries.filter(e=>e.nec==='yes').reduce((s,e)=>s+e.amount,0);
-  summaryRows.push([]);
-  summaryRows.push(['All time total',grandTotal,grandNec,grandTotal-grandNec,entries.length]);
+  summaryRows.push([]); summaryRows.push(['All time total',grandTotal,grandNec,grandTotal-grandNec,entries.length]);
   const summarySheet=XLSX.utils.aoa_to_sheet(summaryRows);
   summarySheet['!cols']=[{wch:22},{wch:16},{wch:16},{wch:14},{wch:16}];
   XLSX.utils.book_append_sheet(wb,summarySheet,'Summary');
-  sortedMonths.forEach(mk => {
+  sortedMonths.forEach(mk=>{
     const mes=byMonth[mk].sort((a,b)=>{ if(a.createdAt&&b.createdAt)return b.createdAt.seconds-a.createdAt.seconds; return 0; });
     const [y,m]=mk.split('-').map(Number);
     const sheetName=new Date(y,m-1,1).toLocaleString('default',{month:'short',year:'numeric'});
@@ -387,10 +419,7 @@ window.exportXLSX = () => {
     mes.forEach(e=>rows.push([e.date||'',e.note||'',e.cat||'',e.amount,e.nec==='yes'?'Yes':'No',e.recurring?'Yes':'No']));
     const total=mes.reduce((s,e)=>s+e.amount,0);
     const nec=mes.filter(e=>e.nec==='yes').reduce((s,e)=>s+e.amount,0);
-    rows.push([]);
-    rows.push(['Total','','',total,'','']);
-    rows.push(['Necessary','','',nec,'','']);
-    rows.push(['Impulse','','',total-nec,'','']);
+    rows.push([]); rows.push(['Total','','',total,'','']); rows.push(['Necessary','','',nec,'','']); rows.push(['Impulse','','',total-nec,'','']);
     const ws=XLSX.utils.aoa_to_sheet(rows);
     ws['!cols']=[{wch:14},{wch:28},{wch:14},{wch:13},{wch:12},{wch:12}];
     XLSX.utils.book_append_sheet(wb,ws,sheetName);
@@ -423,23 +452,15 @@ function render() {
     else msg.style.display='none';
   } else document.getElementById('budget-wrap').style.display='none';
   const months6=[];
-  for(let i=5;i>=0;i--){
-    let m=now.getMonth()-i,y=now.getFullYear();
-    while(m<0){m+=12;y--;}
-    const k=mKey(y,m);
-    const t=entries.filter(e=>e.monthKey===k).reduce((s,e)=>s+e.amount,0);
-    const rt=t>0?recurring.reduce((s,r)=>s+r.amount,0):0;
-    months6.push({label:mShort(y,m),total:t+rt});
-  }
+  for(let i=5;i>=0;i--){ let m=now.getMonth()-i,y=now.getFullYear(); while(m<0){m+=12;y--;} const k=mKey(y,m); const t=entries.filter(e=>e.monthKey===k).reduce((s,e)=>s+e.amount,0); const rt=t>0?recurring.reduce((s,r)=>s+r.amount,0):0; months6.push({label:mShort(y,m),total:t+rt}); }
   const hasTrend=months6.some(m=>m.total>0);
   document.getElementById('trend-card').style.display=hasTrend?'block':'none';
   if(hasTrend){
     const dk=window.matchMedia('(prefers-color-scheme: dark)').matches;
-    const gc=dk?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.05)';
-    const lc=dk?'#5a5652':'#a0aca6';
+    const gc=dk?'rgba(255,255,255,0.05)':'rgba(0,0,0,0.05)'; const lc=dk?'#5a5652':'#a0aca6';
     const canvas=document.getElementById('trend-chart');
     if(trendChart){trendChart.destroy();trendChart=null;}
-    trendChart=new Chart(canvas,{type:'bar',data:{labels:months6.map(m=>m.label),datasets:[{data:months6.map(m=>m.total),backgroundColor:months6.map((_,i)=>i===5?(dk?'#f0ece5':'#1a1714'):(dk?'rgba(255,255,255,0.1)':'rgba(26,23,20,0.09)')),borderRadius:4,borderSkipped:false}]},options:{plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+fmt(c.raw)},bodyFont:{family:'DM Sans',size:13},titleFont:{family:'DM Sans',size:12}}},scales:{x:{grid:{display:false},ticks:{color:lc,font:{family:'DM Sans',size:12}}},y:{grid:{color:gc},border:{dash:[4,4]},ticks:{color:lc,font:{family:'DM Sans',size:12},callback:v=>'₹'+(v>=1000?Math.round(v/1000)+'k':v)}}},animation:{duration:400}}});
+    trendChart=new Chart(canvas,{type:'bar',data:{labels:months6.map(m=>m.label),datasets:[{data:months6.map(m=>m.total),backgroundColor:months6.map((_,i)=>i===5?(dk?'#f0ece5':'#1a1714'):(dk?'rgba(255,255,255,0.1)':'rgba(26,23,20,0.09)')),borderRadius:4,borderSkipped:false}]},options:{plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+fmt(c.raw)}}},scales:{x:{grid:{display:false},ticks:{color:lc,font:{family:'DM Sans',size:12}}},y:{grid:{color:gc},border:{dash:[4,4]},ticks:{color:lc,font:{family:'DM Sans',size:12},callback:v=>'₹'+(v>=1000?Math.round(v/1000)+'k':v)}}},animation:{duration:400}}});
   }
   const catTots={};
   mes.forEach(e=>{catTots[e.cat]=(catTots[e.cat]||0)+e.amount;});
@@ -448,66 +469,18 @@ function render() {
     document.getElementById('pie-card').style.display='block';
     const canvas=document.getElementById('pie-chart');
     if(pieChart){pieChart.destroy();pieChart=null;}
-    pieChart=new Chart(canvas,{type:'doughnut',data:{labels:catKeys,datasets:[{data:catKeys.map(k=>catTots[k]),backgroundColor:catKeys.map(k=>CATS[k]||'#888'),borderWidth:0,hoverOffset:4}]},options:{cutout:'68%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+fmt(c.raw)},bodyFont:{family:'DM Sans',size:13}}},animation:{duration:400}}});
+    pieChart=new Chart(canvas,{type:'doughnut',data:{labels:catKeys,datasets:[{data:catKeys.map(k=>catTots[k]),backgroundColor:catKeys.map(k=>CATS[k]||'#888'),borderWidth:0,hoverOffset:4}]},options:{cutout:'68%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>' '+fmt(c.raw)}}},animation:{duration:400}}});
     document.getElementById('legend').innerHTML=catKeys.map(k=>`<div class="legend-row"><div class="ldot" style="background:${CATS[k]||'#888'}"></div><span class="lname">${k}</span><span class="lval">${fmt(catTots[k])}</span></div>`).join('');
   } else { document.getElementById('pie-card').style.display='none'; if(pieChart){pieChart.destroy();pieChart=null;} }
   const cats=['All',...Object.keys(CATS)];
-  document.getElementById('chips').innerHTML=cats.map(c=>`<button class="chip${activeFilter===c?' active':''}" onclick="window._filter('${c}')">${c}</button>`).join('');
+  document.getElementById('chips').innerHTML=cats.map(c=>`<button class="chip${activeFilter===c?' active':''}" onclick="setFilter('${c}')">${c}</button>`).join('');
   const el=document.getElementById('entries');
   if(filtered.length===0){el.innerHTML='<div class="empty">nothing here yet</div>';return;}
-  el.innerHTML=filtered.map(e=>`<div class="entry"><div class="cat-pip" style="background:${CATS[e.cat]||'#888'}"></div><div class="entry-info"><div class="entry-note">${e.note||e.cat}</div><div class="entry-meta">${e.cat} · ${e.date}${e.isRecPlaceholder||e.recurring?'<span class="rec-tag">recurring</span>':''}</div></div><span class="nec-tag ${e.nec==='yes'?'y':'n'}">${e.nec==='yes'?'needed':'impulse'}</span><span class="entry-amt">${fmt(e.amount)}</span><button class="del-btn" onclick="window._del('${e.id}','${!!e.isRecPlaceholder}')">×</button></div>`).join('');
+  el.innerHTML=filtered.map(e=>`<div class="entry"><div class="cat-pip" style="background:${CATS[e.cat]||'#888'}"></div><div class="entry-info"><div class="entry-note">${e.note||e.cat}</div><div class="entry-meta">${e.cat} · ${e.date}${e.isRecPlaceholder||e.recurring?'<span class="rec-tag">recurring</span>':''}</div></div><span class="nec-tag ${e.nec==='yes'?'y':'n'}">${e.nec==='yes'?'needed':'impulse'}</span><span class="entry-amt">${fmt(e.amount)}</span><button class="del-btn" onclick="delEntry('${e.id}','${!!e.isRecPlaceholder}')">×</button></div>`).join('');
 }
 
-async function loadBudget(uid){ try{const s=await getDoc(doc(db,'users',uid,'settings','budget'));budget=s.exists()?(s.data().amount||0):0;}catch{budget=0;} }
-
-function startListening(uid){
-  if(unsubE)unsubE(); if(unsubR)unsubR();
-  unsubE=onSnapshot(query(collection(db,'users',uid,'expenses'),orderBy('createdAt','desc')),snap=>{
-    entries=snap.docs.map(d=>({id:d.id,...d.data()}));render();
-    document.getElementById('sync-dot').classList.add('live');
-    document.getElementById('sync-text').textContent='synced';
-  },()=>{document.getElementById('sync-text').textContent='offline';});
-  unsubR=onSnapshot(collection(db,'users',uid,'recurring'),snap=>{ recurring=snap.docs.map(d=>({id:d.id,...d.data()}));render(); });
-}
-
-onAuthStateChanged(auth, async u => {
-  if (u) {
-    user = u;
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('main-app').style.display = 'block';
-    const av = document.getElementById('user-avatar');
-    av.innerHTML = u.photoURL
-      ? `<img class="avatar" src="${u.photoURL}" referrerpolicy="no-referrer">`
-      : `<div class="avatar-placeholder">${(u.displayName||u.email||'?')[0].toUpperCase()}</div>`;
-    await loadBudget(u.uid);
-    startListening(u.uid);
-  } else {
-    user = null;
-    document.getElementById('login-screen').style.display = 'flex';
-    document.getElementById('main-app').style.display = 'none';
-    document.getElementById('signin-btn').disabled = false;
-    setStatus('');
-    if(unsubE)unsubE(); if(unsubR)unsubR();
-    entries=[]; recurring=[];
-  }
-});
-
-window.signInWithGoogle = async () => {
-  const provider = new GoogleAuthProvider();
-  provider.setCustomParameters({ prompt: 'select_account' });
-  if (isMobile) {
-    document.getElementById('signin-btn').disabled = true;
-    setStatus('Redirecting to Google...');
-    await signInWithRedirect(auth, provider);
-  } else {
-    try { await signInWithPopup(auth, provider); }
-    catch(e) { console.error(e); alert('Sign in failed. Please try again.'); }
-  }
-};
-
-window.signOut = async () => { await fbSignOut(auth); };
+window.setFilter = c => { activeFilter=c; render(); };
 window.changeMonth = dir => { viewM+=dir; if(viewM>11){viewM=0;viewY++;}if(viewM<0){viewM=11;viewY--;} activeFilter='All'; render(); };
-window._filter = c => { activeFilter=c; render(); };
 
 function setNec(v){ necVal=v; document.getElementById('nec-yes').className='nec-opt'+(v==='yes'?' y':''); document.getElementById('nec-no').className='nec-opt'+(v==='no'?' n':''); }
 window.setNec=setNec;
@@ -518,14 +491,26 @@ window.openBudgetModal=()=>{ document.getElementById('b-amount').value=budget>0?
 window.closeBudgetModal=()=>document.getElementById('budget-overlay').classList.remove('open');
 window.openRecurringModal=()=>{
   const rl=document.getElementById('rec-list');
-  rl.innerHTML=recurring.length===0?'<p style="font-size:14px;color:var(--ink3);">No recurring expenses yet. Add one using the + button.</p>':recurring.map(t=>`<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line);"><div style="flex:1;"><div style="font-size:15px;">${t.note||t.cat}</div><div style="font-size:12px;color:var(--ink3);margin-top:2px;">${t.cat} · ${fmt(t.amount)}/month</div></div><button onclick="window._delRec('${t.id}')" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--ink3);">×</button></div>`).join('');
+  rl.innerHTML=recurring.length===0?'<p style="font-size:14px;color:var(--ink3);">No recurring expenses yet.</p>':recurring.map(t=>`<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--line);"><div style="flex:1;"><div style="font-size:15px;">${t.note||t.cat}</div><div style="font-size:12px;color:var(--ink3);margin-top:2px;">${t.cat} · ${fmt(t.amount)}/month</div></div><button onclick="delRec('${t.id}')" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--ink3);">×</button></div>`).join('');
   document.getElementById('rec-overlay').classList.add('open');
 };
 window.closeRecurringModal=()=>document.getElementById('rec-overlay').classList.remove('open');
-window._delRec=async id=>{ if(confirm('Remove this recurring expense?')){ await deleteDoc(doc(db,'users',user.uid,'recurring',id)); window.openRecurringModal(); } };
-window.saveBudget=async()=>{ const v=parseInt(document.getElementById('b-amount').value); if(!v||v<1){document.getElementById('b-amount').focus();return;} budget=v; try{await setDoc(doc(db,'users',user.uid,'settings','budget'),{amount:v});}catch(e){console.error(e);} window.closeBudgetModal();render(); };
-window.saveEntry=async()=>{
-  if(!user)return;
+
+window.delRec = async id => {
+  if(confirm('Remove this recurring expense?')){
+    await db.collection('users').doc(currentUser.uid).collection('recurring').doc(id).delete();
+    window.openRecurringModal();
+  }
+};
+window.saveBudget = async () => {
+  const v=parseInt(document.getElementById('b-amount').value);
+  if(!v||v<1){document.getElementById('b-amount').focus();return;}
+  budget=v;
+  await db.collection('users').doc(currentUser.uid).collection('settings').doc('budget').set({amount:v});
+  window.closeBudgetModal(); render();
+};
+window.saveEntry = async () => {
+  if(!currentUser)return;
   const amount=parseInt(document.getElementById('f-amount').value);
   if(!amount||amount<1){document.getElementById('f-amount').focus();return;}
   const note=document.getElementById('f-note').value.trim();
@@ -534,22 +519,31 @@ window.saveEntry=async()=>{
   const date=new Date().toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
   const mk=mKey(now.getFullYear(),now.getMonth());
   const btn=document.getElementById('save-btn');
-  btn.disabled=true;btn.textContent='saving...';
-  try{
-    const data={amount,note,cat,nec:necVal,date,monthKey:mk,createdAt:serverTimestamp()};
+  btn.disabled=true; btn.textContent='saving...';
+  try {
+    const data={amount,note,cat,nec:necVal,date,monthKey:mk,createdAt:firebase.firestore.FieldValue.serverTimestamp()};
     if(isRec)data.recurring=true;
-    await addDoc(collection(db,'users',user.uid,'expenses'),data);
-    if(isRec)await addDoc(collection(db,'users',user.uid,'recurring'),{amount,note,cat,nec:necVal});
+    await db.collection('users').doc(currentUser.uid).collection('expenses').add(data);
+    if(isRec) await db.collection('users').doc(currentUser.uid).collection('recurring').add({amount,note,cat,nec:necVal});
     window.closeModal();
-  }catch(e){alert('Could not save.');console.error(e);}
-  btn.disabled=false;btn.textContent='save';
+  } catch(e){ alert('Could not save.'); console.error(e); }
+  btn.disabled=false; btn.textContent='save';
 };
-window._del=async(id,isPlaceholder)=>{
-  if(isPlaceholder==='true'){ if(confirm('Remove this recurring expense?')){await deleteDoc(doc(db,'users',user.uid,'recurring',id.replace('rec_','')));} return; }
-  if(confirm('Delete this entry?'))await deleteDoc(doc(db,'users',user.uid,'expenses',id));
+window.delEntry = async (id, isPlaceholder) => {
+  if(isPlaceholder==='true'){
+    if(confirm('Remove this recurring expense?')){
+      await db.collection('users').doc(currentUser.uid).collection('recurring').doc(id.replace('rec_','')).delete();
+    } return;
+  }
+  if(confirm('Delete this entry?')) await db.collection('users').doc(currentUser.uid).collection('expenses').doc(id).delete();
 };
-['add-overlay','budget-overlay','rec-overlay'].forEach(id=>{ document.getElementById(id).addEventListener('click',e=>{if(e.target.id===id)e.target.classList.remove('open');}); });
-document.addEventListener('keydown',e=>{ if(e.key==='Escape')['add-overlay','budget-overlay','rec-overlay'].forEach(id=>document.getElementById(id).classList.remove('open')); });
+
+['add-overlay','budget-overlay','rec-overlay'].forEach(id=>{
+  document.getElementById(id).addEventListener('click',e=>{if(e.target.id===id)e.target.classList.remove('open');});
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape')['add-overlay','budget-overlay','rec-overlay'].forEach(id=>document.getElementById(id).classList.remove('open'));
+});
 </script>
 </body>
 </html>
