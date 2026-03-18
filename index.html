@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Expense Tracker</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #ffffff; --bg2: #f5f4f1; --bg3: #eeede9;
+    --text: #1a1a18; --text2: #6b6a66; --text3: #9e9d99;
+    --border: rgba(0,0,0,0.12); --border2: rgba(0,0,0,0.22);
+    --success-bg: #eaf3de; --success-text: #3b6d11;
+    --danger-bg: #fcebeb; --danger-text: #a32d2d;
+    --radius-md: 8px; --radius-lg: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1a; --bg2: #242422; --bg3: #2c2c2a;
+      --text: #f0ede6; --text2: #a09e98; --text3: #6b6a66;
+      --border: rgba(255,255,255,0.1); --border2: rgba(255,255,255,0.2);
+      --success-bg: #173404; --success-text: #c0dd97;
+      --danger-bg: #501313; --danger-text: #f7c1c1;
+    }
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg3); color: var(--text); min-height: 100vh; }
+  #app { max-width: 540px; margin: 0 auto; padding: 1.5rem 1rem 6rem; }
+  .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+  h1 { font-size: 22px; font-weight: 500; }
+  .sync-label { font-size: 12px; color: var(--text2); display: flex; align-items: center; gap: 6px; }
+  .sync-dot { width: 7px; height: 7px; border-radius: 50%; background: #ccc; }
+  .sync-dot.live { background: #1D9E75; }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 1.5rem; }
+  .stat { background: var(--bg); border-radius: var(--radius-md); padding: 14px 12px; border: 0.5px solid var(--border); }
+  .stat .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text2); margin-bottom: 6px; }
+  .stat .value { font-size: 20px; font-weight: 500; }
+  .stat .value.success { color: var(--success-text); }
+  .stat .value.danger { color: var(--danger-text); }
+  .filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 1rem; }
+  .chip { font-size: 12px; padding: 5px 13px; border-radius: 999px; border: 0.5px solid var(--border2); background: transparent; color: var(--text2); cursor: pointer; transition: all 0.15s; }
+  .chip.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .entry-list { display: flex; flex-direction: column; gap: 8px; }
+  .entry { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 12px 14px; display: flex; align-items: center; gap: 12px; }
+  .cat-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .info { flex: 1; min-width: 0; }
+  .note { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .meta { font-size: 12px; color: var(--text2); margin-top: 2px; }
+  .amount { font-size: 15px; font-weight: 500; flex-shrink: 0; }
+  .nec-badge { font-size: 11px; padding: 3px 9px; border-radius: 999px; flex-shrink: 0; }
+  .nec-yes { background: var(--success-bg); color: var(--success-text); }
+  .nec-no { background: var(--danger-bg); color: var(--danger-text); }
+  .del-btn { background: none; border: none; font-size: 16px; cursor: pointer; color: var(--text3); padding: 2px 4px; flex-shrink: 0; line-height: 1; }
+  .del-btn:hover { color: var(--danger-text); }
+  .empty { text-align: center; padding: 4rem 1rem; color: var(--text2); font-size: 14px; }
+  .loading { text-align: center; padding: 3rem 1rem; color: var(--text3); font-size: 13px; }
+  .add-btn { position: fixed; bottom: 28px; right: 28px; width: 56px; height: 56px; border-radius: 50%; background: var(--text); color: var(--bg); border: none; font-size: 28px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform 0.15s; box-shadow: 0 4px 16px rgba(0,0,0,0.18); }
+  .add-btn:hover { transform: scale(1.08); }
+  .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); align-items: flex-end; justify-content: center; z-index: 100; padding: 1rem; }
+  @media (min-width: 480px) { .modal-bg { align-items: center; } }
+  .modal-bg.open { display: flex; }
+  .modal { background: var(--bg); border-radius: var(--radius-lg); border: 0.5px solid var(--border); padding: 1.5rem; width: 100%; max-width: 380px; }
+  .modal h2 { font-size: 16px; font-weight: 500; margin-bottom: 1.25rem; }
+  .field { margin-bottom: 1rem; }
+  .field label { font-size: 12px; color: var(--text2); display: block; margin-bottom: 6px; }
+  .field input, .field select { width: 100%; padding: 9px 11px; font-size: 14px; border: 0.5px solid var(--border2); border-radius: var(--radius-md); background: var(--bg2); color: var(--text); outline: none; }
+  .field input:focus, .field select:focus { border-color: var(--text3); }
+  .nec-toggle { display: flex; gap: 8px; }
+  .nec-opt { flex: 1; padding: 9px; border: 0.5px solid var(--border2); border-radius: var(--radius-md); font-size: 13px; text-align: center; cursor: pointer; color: var(--text2); transition: all 0.15s; }
+  .nec-opt.sel-yes { border-color: #3B6D11; background: var(--success-bg); color: var(--success-text); }
+  .nec-opt.sel-no { border-color: #A32D2D; background: var(--danger-bg); color: var(--danger-text); }
+  .modal-actions { display: flex; gap: 8px; margin-top: 1.25rem; }
+  .modal-actions button { flex: 1; padding: 10px; border-radius: var(--radius-md); font-size: 14px; cursor: pointer; border: 0.5px solid var(--border2); background: transparent; color: var(--text); }
+  .modal-actions .save { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .modal-actions .save:disabled { opacity: 0.5; cursor: not-allowed; }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div class="header">
+    <h1>Expenses</h1>
+    <div class="sync-label">
+      <span class="sync-dot" id="sync-dot"></span>
+      <span id="sync-text">connecting...</span>
+    </div>
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="label">Total</div><div class="value" id="s-total">₹0</div></div>
+    <div class="stat"><div class="label">Necessary</div><div class="value success" id="s-nec">₹0</div></div>
+    <div class="stat"><div class="label">Impulse</div><div class="value danger" id="s-unnec">₹0</div></div>
+  </div>
+  <div class="filters" id="filters"></div>
+  <div class="entry-list" id="entry-list"><div class="loading">Loading your expenses...</div></div>
+</div>
+
+<button class="add-btn" onclick="openModal()">+</button>
+
+<div class="modal-bg" id="modal-bg">
+  <div class="modal">
+    <h2>Add expense</h2>
+    <div class="field">
+      <label>Amount (₹)</label>
+      <input type="number" id="f-amount" placeholder="e.g. 150" min="1" inputmode="numeric">
+    </div>
+    <div class="field">
+      <label>Note</label>
+      <input type="text" id="f-note" placeholder="e.g. lunch at canteen">
+    </div>
+    <div class="field">
+      <label>Category</label>
+      <select id="f-cat">
+        <option value="Food">Food</option>
+        <option value="Travel">Travel</option>
+        <option value="Stationary">Stationary</option>
+        <option value="Shopping">Shopping</option>
+        <option value="Entertainment">Entertainment</option>
+        <option value="Health">Health</option>
+        <option value="Other">Other</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Was it necessary?</label>
+      <div class="nec-toggle">
+        <div class="nec-opt" id="opt-yes" onclick="selectNec('yes')">Yes, needed it</div>
+        <div class="nec-opt" id="opt-no" onclick="selectNec('no')">Nope, impulse</div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button onclick="closeModal()">Cancel</button>
+      <button class="save" id="save-btn" onclick="saveEntry()">Save</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyByuJEfAmu_YC6gR-In24IorL-NtY_ZuXM",
+  authDomain: "expense-tracker-abca3.firebaseapp.com",
+  projectId: "expense-tracker-abca3",
+  storageBucket: "expense-tracker-abca3.firebasestorage.app",
+  messagingSenderId: "942008310540",
+  appId: "1:942008310540:web:63cdc94af5fd125c810729"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const colRef = collection(db, "expenses");
+
+const CAT_COLORS = {
+  Food:'#1D9E75', Travel:'#378ADD', Stationary:'#BA7517',
+  Shopping:'#D4537E', Entertainment:'#7F77DD', Health:'#E24B4A', Other:'#888780'
+};
+
+let entries = [];
+let necVal = 'yes';
+let activeFilter = 'All';
+
+function fmt(n) { return '₹' + n.toLocaleString('en-IN'); }
+
+function render() {
+  const cats = ['All', ...Object.keys(CAT_COLORS)];
+  document.getElementById('filters').innerHTML = cats.map(c =>
+    `<button class="chip${activeFilter===c?' active':''}" onclick="window._setFilter('${c}')">${c}</button>`
+  ).join('');
+
+  const filtered = activeFilter === 'All' ? entries : entries.filter(e => e.cat === activeFilter);
+  const list = document.getElementById('entry-list');
+
+  if (filtered.length === 0) {
+    list.innerHTML = '<div class="empty">No expenses yet — press + to add one</div>';
+  } else {
+    list.innerHTML = filtered.map(e =>
+      `<div class="entry">
+        <div class="cat-dot" style="background:${CAT_COLORS[e.cat]||'#888'}"></div>
+        <div class="info">
+          <div class="note">${e.note || e.cat}</div>
+          <div class="meta">${e.cat} · ${e.date}</div>
+        </div>
+        <span class="nec-badge ${e.nec==='yes'?'nec-yes':'nec-no'}">${e.nec==='yes'?'needed':'impulse'}</span>
+        <span class="amount">${fmt(e.amount)}</span>
+        <button class="del-btn" onclick="window._deleteEntry('${e.id}')">×</button>
+      </div>`
+    ).join('');
+  }
+
+  const total = entries.reduce((s, e) => s + e.amount, 0);
+  const nec   = entries.filter(e => e.nec==='yes').reduce((s, e) => s + e.amount, 0);
+  document.getElementById('s-total').textContent  = fmt(total);
+  document.getElementById('s-nec').textContent    = fmt(nec);
+  document.getElementById('s-unnec').textContent  = fmt(total - nec);
+}
+
+// Live sync from Firestore
+const q = query(colRef, orderBy("createdAt", "desc"));
+onSnapshot(q, (snapshot) => {
+  entries = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+  render();
+  document.getElementById('sync-dot').classList.add('live');
+  document.getElementById('sync-text').textContent = 'synced';
+}, (err) => {
+  document.getElementById('sync-text').textContent = 'offline';
+  console.error(err);
+});
+
+window._setFilter = (c) => { activeFilter = c; render(); };
+
+window.openModal = () => {
+  document.getElementById('f-amount').value = '';
+  document.getElementById('f-note').value = '';
+  document.getElementById('f-cat').value = 'Food';
+  selectNec('yes');
+  document.getElementById('modal-bg').classList.add('open');
+  setTimeout(() => document.getElementById('f-amount').focus(), 120);
+};
+
+window.closeModal = () => document.getElementById('modal-bg').classList.remove('open');
+
+function selectNec(v) {
+  necVal = v;
+  document.getElementById('opt-yes').className = 'nec-opt' + (v==='yes'?' sel-yes':'');
+  document.getElementById('opt-no').className  = 'nec-opt' + (v==='no' ?' sel-no' :'');
+}
+window.selectNec = selectNec;
+
+window.saveEntry = async () => {
+  const amount = parseInt(document.getElementById('f-amount').value);
+  if (!amount || amount < 1) { document.getElementById('f-amount').focus(); return; }
+  const note = document.getElementById('f-note').value.trim();
+  const cat  = document.getElementById('f-cat').value;
+  const date = new Date().toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' });
+  const btn  = document.getElementById('save-btn');
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+  try {
+    await addDoc(colRef, { amount, note, cat, nec: necVal, date, createdAt: serverTimestamp() });
+    window.closeModal();
+  } catch(e) {
+    alert('Could not save. Check your internet connection.');
+    console.error(e);
+  }
+  btn.disabled = false;
+  btn.textContent = 'Save';
+};
+
+window._deleteEntry = async (id) => {
+  if (confirm('Delete this entry?')) {
+    await deleteDoc(doc(db, "expenses", id));
+  }
+};
+
+document.getElementById('modal-bg').addEventListener('click', e => {
+  if (e.target.id === 'modal-bg') window.closeModal();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') window.closeModal(); });
+</script>
+</body>
+</html>
